@@ -26,16 +26,18 @@ jobs:
 
       - name: Build Debug APK
         run: |
-          GRADLEW_PATH=$(find . -maxdepth 3 -name "gradlew" | head -n 1)
-          if [ -n "$GRADLEW_PATH" ]; then
-            DIR=$(dirname "$GRADLEW_PATH")
-            cd "$DIR"
+          SETTINGS_PATH=$(find . -maxdepth 3 \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1)
+          DIR=$(dirname "$SETTINGS_PATH")
+          cd "$DIR"
+
+          if [ ! -f "debug.keystore" ]; then
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+          if [ -f "gradlew" ]; then
             chmod +x gradlew
             ./gradlew assembleDebug --no-daemon -Pksp.incremental=false -Djava.awt.headless=true
           else
-            SETTINGS_PATH=$(find . -maxdepth 3 \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1)
-            DIR=$(dirname "$SETTINGS_PATH")
-            cd "$DIR"
             gradle assembleDebug --no-daemon -Pksp.incremental=false -Djava.awt.headless=true
           fi
 
