@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CurrencyExchange
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.LightMode
@@ -39,14 +40,19 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.model.CashBucket
+import com.example.model.ExchangeRates
+import com.example.model.NumberFormatters
 import com.example.ui.theme.LocalFinancialColors
+import com.example.ui.theme.tabular
 
 @Composable
 fun SettingsScreen(
     isDarkTheme: Boolean,
+    exchangeRates: ExchangeRates,
     activeCount: Int,
     archivedCount: Int,
     onSetDarkTheme: (Boolean) -> Unit,
+    onOpenExchangeRates: () -> Unit,
     onOpenOpeningBalances: () -> Unit,
     onExportJsonBackup: () -> Unit,
     onImportJsonBackup: () -> Unit,
@@ -134,6 +140,112 @@ fun SettingsScreen(
                             onCheckedChange = onSetDarkTheme,
                             modifier = Modifier.testTag("settings_dark_mode_switch"),
                         )
+                    }
+                }
+            }
+        }
+
+        // 1b. Hybrid Exchange Rates Card (أسعار الصرف)
+        item(key = "exchange_rates_card") {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, financial.cardBorder),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CurrencyExchange,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "أسعار الصرف المعتمدة",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = "آخر تحديث: ${exchangeRates.lastUpdatedLabel}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                Text(
+                                    text = "الدولار / الليرة السورية",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = "1$ = ${NumberFormatters.formatAmount(exchangeRates.usdToSypRate)} ل.س",
+                                    style = MaterialTheme.typography.titleSmall.tabular().copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                                Text(
+                                    text = "الدولار / الليرة التركية",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = "1$ = ${NumberFormatters.formatAmount(exchangeRates.usdToTryRate)} ل.ت",
+                                    style = MaterialTheme.typography.titleSmall.tabular().copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = onOpenExchangeRates,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("settings_exchange_rates_button"),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CurrencyExchange,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("تحديث أو تعديل أسعار الصرف")
                     }
                 }
             }

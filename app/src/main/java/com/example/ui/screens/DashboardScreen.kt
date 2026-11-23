@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.AssignmentTurnedIn
+import androidx.compose.material.icons.rounded.CurrencyExchange
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
@@ -51,6 +53,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.model.CashTransaction
+import com.example.model.EquivalentTotals
+import com.example.model.ExchangeRates
 import com.example.model.LedgerFilter
 import com.example.model.NumberFormatters
 import com.example.model.PaymentMethod
@@ -65,6 +69,7 @@ fun DashboardScreen(
     uiState: CashUiState,
     onToggleDarkTheme: () -> Unit,
     onOpenOpeningBalances: () -> Unit,
+    onOpenExchangeRates: () -> Unit,
     onOpenHandoverReport: () -> Unit,
     onSelectFilter: (LedgerFilter) -> Unit,
     onEditTransaction: (CashTransaction) -> Unit,
@@ -196,9 +201,26 @@ fun DashboardScreen(
             }
         }
 
+        // 1b. Compact Exchange Rates Strip (أسعار الصرف)
+        item(key = "exchange_rates_strip") {
+            ExchangeRatesStrip(
+                rates = uiState.exchangeRates,
+                onClick = onOpenExchangeRates,
+            )
+        }
+
         // 2. Five Live Balance Buckets Grid
         item(key = "balance_grid") {
             BalanceBucketsSection(bucketStats = uiState.bucketStats)
+        }
+
+        // 2b. Live Equivalent Total Summary Bar (إجمالي الغلة المعادل)
+        item(key = "equivalent_totals_bar") {
+            EquivalentTotalsSummaryCard(
+                totals = uiState.equivalentTotals,
+                rates = uiState.exchangeRates,
+                onEditRates = onOpenExchangeRates,
+            )
         }
 
         // 3. Prominent Daily Handover Report Button
@@ -550,6 +572,185 @@ private fun EmptyLedgerCard(hasAnyTransactions: Boolean) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+        }
+    }
+}
+
+@Composable
+private fun ExchangeRatesStrip(
+    rates: ExchangeRates,
+    onClick: () -> Unit,
+) {
+    val financial = LocalFinancialColors.current
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, financial.cardBorder),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("dashboard_exchange_rates_strip"),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.CurrencyExchange,
+                    contentDescription = "أسعار الصرف",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "أسعار الصرف: 1$ = ${NumberFormatters.formatAmount(rates.usdToSypRate)} ل.س  •  ${NumberFormatters.formatAmount(rates.usdToTryRate)} ل.ت",
+                    style = MaterialTheme.typography.labelLarge.tabular().copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = rates.lastUpdatedLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Text(
+                    text = "تحديث",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EquivalentTotalsSummaryCard(
+    totals: EquivalentTotals,
+    rates: ExchangeRates,
+    onEditRates: () -> Unit,
+) {
+    val financial = LocalFinancialColors.current
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("dashboard_equivalent_totals_card"),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "إجمالي الغلة المعادل (الصناديق الـ 5)",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Surface(
+                    onClick = onEditRates,
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                ) {
+                    Text(
+                        text = "1$ = ${NumberFormatters.formatAmount(rates.usdToSypRate)} ل.س",
+                        style = MaterialTheme.typography.labelSmall.tabular(),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                EquivalentValueTile(
+                    label = "إجمالي الصندوق المعادل بالدولار ($)",
+                    formattedValue = "${NumberFormatters.formatAmount(totals.totalUsd)} $",
+                    isNegative = totals.totalUsd < -0.0001,
+                    valueColor = financial.inflow,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("dashboard_equivalent_usd_tile"),
+                )
+                EquivalentValueTile(
+                    label = "إجمالي الصندوق المعادل بالليرة السورية",
+                    formattedValue = "${NumberFormatters.formatAmount(totals.totalSyp)} ل.س",
+                    isNegative = totals.totalSyp < -0.0001,
+                    valueColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("dashboard_equivalent_syp_tile"),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EquivalentValueTile(
+    label: String,
+    formattedValue: String,
+    isNegative: Boolean,
+    valueColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    val financial = LocalFinancialColors.current
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, financial.cardBorder),
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            AnimatedContent(
+                targetState = formattedValue,
+                label = "equiv_val",
+            ) { value ->
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleMedium.tabular().copy(fontWeight = FontWeight.Bold),
+                    color = if (isNegative) financial.outflow else valueColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

@@ -67,4 +67,13 @@
     <string name="backup_section">النسخ الاحتياطي المحلي (JSON)</string>
     <string name="export_backup">تصدير نسخة احتياطية JSON</string>
     <string name="import_backup">استيراد نسخة احتياطية JSON</string>
+
+    <!-- Hybrid Exchange Rates -->
+    <string name="exchange_rates_title">أسعار الصرف</string>
+    <string name="fetch_live_rates">تحديث تلقائي من الإنترنت</string>
+    <string name="manual_edit_rates_title">تعديل يدوي حسب سعر الشركة</string>
+    <string name="save_rates">حفظ الأسعار</string>
+    <string name="offline_rates_error">لا يوجد اتصال بالإنترنت، يمكنك التعديل يدوياً</string>
+    <string name="equivalent_total_usd">إجمالي الصندوق المعادل بالدولار ($)</string>
+    <string name="equivalent_total_syp">إجمالي الصندوق المعادل بالليرة السورية (ل.س)</string>
 </resources>

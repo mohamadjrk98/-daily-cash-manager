@@ -87,6 +87,14 @@ object ReportExporter {
             val icon = if (stat.bucket.method == com.example.model.PaymentMethod.CASH) "💵" else "📱"
             sb.appendLine("$icon ${stat.bucket.arabicTitle}: *${NumberFormatters.formatWithCurrency(stat.netBalance, stat.bucket.currency)}*")
         }
+        val eq = report.equivalentTotals
+        val sypRateStr = NumberFormatters.formatAmount(report.exchangeRates.usdToSypRate)
+        val tryRateStr = NumberFormatters.formatAmount(report.exchangeRates.usdToTryRate)
+        sb.appendLine("────────────────────")
+        sb.appendLine("💱 *إجمالي الغلة المعادل:*")
+        sb.appendLine("• *إجمالي الصندوق المعادل بالدولار:* *${NumberFormatters.formatAmount(eq.totalUsd)} $*")
+        sb.appendLine("• *إجمالي الصندوق المعادل بالليرة السورية:* *${NumberFormatters.formatAmount(eq.totalSyp)} ل.س*")
+        sb.appendLine("_(أسعار الصرف المعتمدة: 1$ = $sypRateStr ل.س | 1$ = $tryRateStr ل.ت)_")
         sb.appendLine("━━━━━━━━━━━━━━━━━━━━")
         sb.append("✍️ *تم الإعداد عبر مدير الصندوق والغلة اليومية*")
         return sb.toString()
@@ -309,6 +317,33 @@ object ReportExporter {
                     }
                     .net-title { font-size: 12.5px; color: #334155; margin-top: 4px; }
                     .net-amount { font-size: 18px; color: #0F2942; margin-top: 4px; }
+                    .equiv-strip {
+                        margin-top: 12px;
+                        padding: 12px 14px;
+                        border-radius: 10px;
+                        background: #0F2942;
+                        color: #FFFFFF;
+                    }
+                    .equiv-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 8px;
+                        font-size: 12px;
+                        color: #CBD5E1;
+                    }
+                    .equiv-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 10px;
+                    }
+                    .equiv-item {
+                        background: rgba(255,255,255,0.1);
+                        border-radius: 8px;
+                        padding: 8px 12px;
+                    }
+                    .equiv-label { font-size: 11.5px; color: #E2E8F0; }
+                    .equiv-val { font-size: 17px; color: #34D399; margin-top: 3px; }
                     .badge {
                         display: inline-block;
                         font-size: 10.5px;
@@ -390,6 +425,22 @@ object ReportExporter {
                 <section class="card">
                     <h2>القسم ج: صافي الغلة المطلوب تسليمها</h2>
                     <div class="net-grid">$netCards</div>
+                    <div class="equiv-strip">
+                        <div class="equiv-header">
+                            <strong>إجمالي الغلة المعادل (جميع الصناديق الخمسة)</strong>
+                            <span class="num">1$ = ${escapeHtml(NumberFormatters.formatAmount(report.exchangeRates.usdToSypRate))} ل.س &nbsp;|&nbsp; 1$ = ${escapeHtml(NumberFormatters.formatAmount(report.exchangeRates.usdToTryRate))} ل.ت</span>
+                        </div>
+                        <div class="equiv-grid">
+                            <div class="equiv-item">
+                                <div class="equiv-label">إجمالي الصندوق المعادل بالدولار ($)</div>
+                                <div class="equiv-val num">${escapeHtml(NumberFormatters.formatAmount(report.equivalentTotals.totalUsd))} $</div>
+                            </div>
+                            <div class="equiv-item">
+                                <div class="equiv-label">إجمالي الصندوق المعادل بالليرة السورية (ل.س)</div>
+                                <div class="equiv-val num">${escapeHtml(NumberFormatters.formatAmount(report.equivalentTotals.totalSyp))} ل.س</div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <div class="signatures">

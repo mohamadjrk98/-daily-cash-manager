@@ -148,12 +148,31 @@ data class BucketStats(
         get() = opening + totalInflow - totalOutflow
 }
 
+data class ExchangeRates(
+    val usdToSypRate: Double = DEFAULT_USD_TO_SYP,
+    val usdToTryRate: Double = DEFAULT_USD_TO_TRY,
+    val lastUpdatedLabel: String = DEFAULT_LABEL,
+) {
+    companion object {
+        const val DEFAULT_USD_TO_SYP = 14500.0
+        const val DEFAULT_USD_TO_TRY = 35.0
+        const val DEFAULT_LABEL = "الأسعار الافتراضية"
+        val Default = ExchangeRates()
+    }
+}
+
+data class EquivalentTotals(
+    val totalUsd: Double,
+    val totalSyp: Double,
+)
+
 data class HandoverReportData(
     val dateLabel: String,
     val timestampMillis: Long,
     val openingBalances: OpeningBalances,
     val bucketStats: List<BucketStats>,
     val transactions: List<CashTransaction>,
+    val exchangeRates: ExchangeRates = ExchangeRates.Default,
     val isArchived: Boolean = false,
     val archivedDayId: Long? = null,
 ) {
@@ -162,6 +181,9 @@ data class HandoverReportData(
 
     val inflows: List<CashTransaction>
         get() = transactions.filter { it.type == TransactionType.INFLOW }
+
+    val equivalentTotals: EquivalentTotals
+        get() = computeEquivalentTotals(bucketStats, exchangeRates)
 
     fun statsFor(bucket: CashBucket): BucketStats =
         bucketStats.first { it.bucket == bucket }
@@ -194,4 +216,30 @@ fun computeBucketStats(
             totalOutflow = totalOut,
         )
     }
+}
+
+fun computeEquivalentTotals(
+    bucketStats: List<BucketStats>,
+    rates: ExchangeRates,
+): EquivalentTotals {
+    val totalSypBuckets = bucketStats
+        .filter { it.bucket.currency == Currency.SYP }
+        .sumOf { it.netBalance }
+    val totalTryBuckets = bucketStats
+        .filter { it.bucket.currency == Currency.TRY }
+        .sumOf { it.netBalance }
+    val totalUsdBuckets = bucketStats
+        .filter { it.bucket.currency == Currency.USD }
+        .sumOf { it.netBalance }
+
+    val safeSypRate = rates.usdToSypRate.takeIf { it > 0.0 } ?: ExchangeRates.DEFAULT_USD_TO_SYP
+    val safeTryRate = rates.usdToTryRate.takeIf { it > 0.0 } ?: ExchangeRates.DEFAULT_USD_TO_TRY
+
+    val totalUsd = totalUsdBuckets + (totalSypBuckets / safeSypRate) + (totalTryBuckets / safeTryRate)
+    val totalSyp = totalSypBuckets + (totalUsdBuckets * safeSypRate) + ((totalTryBuckets / safeTryRate) * safeSypRate)
+
+    return EquivalentTotals(
+        totalUsd = totalUsd,
+        totalSyp = totalSyp,
+    )
 }

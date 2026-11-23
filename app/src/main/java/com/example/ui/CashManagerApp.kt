@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.export.ReportExporter
 import com.example.model.NumberFormatters
+import com.example.ui.components.ExchangeRateDialog
 import com.example.ui.components.OpeningBalanceDialog
 import com.example.ui.components.TransactionEntrySheet
 import com.example.ui.screens.DashboardScreen
@@ -186,6 +187,18 @@ fun CashManagerApp(
             currentBalances = uiState.openingBalances,
             onDismiss = viewModel::dismissOpeningBalanceDialog,
             onSave = viewModel::saveOpeningBalances,
+        )
+    }
+
+    if (uiState.isExchangeRateDialogOpen) {
+        ExchangeRateDialog(
+            currentRates = uiState.exchangeRates,
+            isFetching = uiState.isFetchingRates,
+            fetchedPreview = uiState.fetchedRatesPreview,
+            feedback = uiState.rateDialogFeedback,
+            onFetchFromInternet = viewModel::fetchLiveExchangeRates,
+            onDismiss = viewModel::dismissExchangeRateDialog,
+            onSave = viewModel::saveExchangeRates,
         )
     }
 
@@ -402,6 +415,7 @@ fun CashManagerApp(
                                 uiState = uiState,
                                 onToggleDarkTheme = viewModel::toggleDarkTheme,
                                 onOpenOpeningBalances = viewModel::openOpeningBalanceDialog,
+                                onOpenExchangeRates = viewModel::openExchangeRateDialog,
                                 onOpenHandoverReport = { viewModel.selectDestination(AppDestination.REPORT) },
                                 onSelectFilter = viewModel::selectFilter,
                                 onEditTransaction = viewModel::openEditTransactionSheet,
@@ -435,9 +449,11 @@ fun CashManagerApp(
 
                             AppDestination.SETTINGS -> SettingsScreen(
                                 isDarkTheme = uiState.isDarkTheme,
+                                exchangeRates = uiState.exchangeRates,
                                 activeCount = uiState.activeTransactions.size,
                                 archivedCount = uiState.archivedDays.size,
                                 onSetDarkTheme = viewModel::setDarkTheme,
+                                onOpenExchangeRates = viewModel::openExchangeRateDialog,
                                 onOpenOpeningBalances = viewModel::openOpeningBalanceDialog,
                                 onExportJsonBackup = {
                                     val fileName = "cash_manager_backup_${NumberFormatters.formatFileDate()}.json"

@@ -432,6 +432,83 @@ fun HandoverReportScreen(
                             }
                         }
                     }
+
+                    // Equivalent Totals (USD & SYP) + Applied Exchange Rates
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                        modifier = Modifier.padding(vertical = 2.dp),
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("report_equivalent_totals_card"),
+                    ) {
+                        val eq = report.equivalentTotals
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = "إجمالي الغلة المعادل (جميع الصناديق الـ 5)",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                            )
+                            Text(
+                                text = "أسعار الصرف المعتمدة: 1$ = ${NumberFormatters.formatAmount(report.exchangeRates.usdToSypRate)} ل.س  |  1$ = ${NumberFormatters.formatAmount(report.exchangeRates.usdToTryRate)} ل.ت",
+                                style = MaterialTheme.typography.labelSmall.tabular(),
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.14f),
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    ) {
+                                        Text(
+                                            text = "المعادل بالدولار ($)",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                                        )
+                                        Text(
+                                            text = "${NumberFormatters.formatAmount(eq.totalUsd)} $",
+                                            style = MaterialTheme.typography.titleMedium.tabular().copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                        )
+                                    }
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.14f),
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                                    ) {
+                                        Text(
+                                            text = "المعادل بالليرة السورية",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                                        )
+                                        Text(
+                                            text = "${NumberFormatters.formatAmount(eq.totalSyp)} ل.س",
+                                            style = MaterialTheme.typography.titleMedium.tabular().copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

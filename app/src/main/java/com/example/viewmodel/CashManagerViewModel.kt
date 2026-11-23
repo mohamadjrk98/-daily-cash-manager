@@ -4,16 +4,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.CashLedgerRepository
+import com.example.data.ExchangeRateFetcher
+import com.example.data.FetchedExchangeRates
 import com.example.model.ArchivedDay
 import com.example.model.BucketStats
 import com.example.model.CashBucket
 import com.example.model.CashTransaction
+import com.example.model.EquivalentTotals
+import com.example.model.ExchangeRates
 import com.example.model.HandoverReportData
 import com.example.model.LedgerFilter
 import com.example.model.NumberFormatters
 import com.example.model.OpeningBalances
 import com.example.model.TransactionType
 import com.example.model.computeBucketStats
+import com.example.model.computeEquivalentTotals
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,17 +33,28 @@ enum class AppDestination {
     SETTINGS,
 }
 
+data class ExchangeRateDialogFeedback(
+    val message: String,
+    val isError: Boolean,
+)
+
 data class CashUiState(
     val isDarkTheme: Boolean = false,
     val todayDateLabel: String = NumberFormatters.formatArabicDate(),
     val openingBalances: OpeningBalances = OpeningBalances.Zero,
+    val exchangeRates: ExchangeRates = ExchangeRates.Default,
     val activeTransactions: List<CashTransaction> = emptyList(),
     val bucketStats: List<BucketStats> = computeBucketStats(OpeningBalances.Zero, emptyList()),
+    val equivalentTotals: EquivalentTotals = EquivalentTotals(0.0, 0.0),
     val selectedFilter: LedgerFilter = LedgerFilter.ALL,
     val archivedDays: List<ArchivedDay> = emptyList(),
     val currentDestination: AppDestination = AppDestination.TODAY,
     val viewingArchivedDay: ArchivedDay? = null,
     val isOpeningBalanceDialogOpen: Boolean = false,
+    val isExchangeRateDialogOpen: Boolean = false,
+    val isFetchingRates: Boolean = false,
+    val fetchedRatesPreview: FetchedExchangeRates? = null,
+    val rateDialogFeedback: ExchangeRateDialogFeedback? = null,
     val isTransactionSheetOpen: Boolean = false,
     val editingTransaction: CashTransaction? = null,
     val pendingDeleteTransaction: CashTransaction? = null,
@@ -59,6 +75,7 @@ data class CashUiState(
             openingBalances = openingBalances,
             bucketStats = bucketStats,
             transactions = activeTransactions,
+            exchangeRates = exchangeRates,
             isArchived = false,
             archivedDayId = null,
         )
@@ -69,11 +86,21 @@ private data class LocalOverlayState(
     val currentDestination: AppDestination = AppDestination.TODAY,
     val viewingArchivedDayId: Long? = null,
     val isOpeningBalanceDialogOpen: Boolean = false,
+    val isExchangeRateDialogOpen: Boolean = false,
+    val isFetchingRates: Boolean = false,
+    val fetchedRatesPreview: FetchedExchangeRates? = null,
+    val rateDialogFeedback: ExchangeRateDialogFeedback? = null,
     val isTransactionSheetOpen: Boolean = false,
     val editingTransaction: CashTransaction? = null,
     val pendingDeleteTransaction: CashTransaction? = null,
     val isCloseDayDialogOpen: Boolean = false,
     val snackbarMessage: String? = null,
+)
+
+private data class PersistedPrefs(
+    val isDarkTheme: Boolean,
+    val openingBalances: OpeningBalances,
+    val exchangeRates: ExchangeRates,
 )
 
 class CashManagerViewModel(
@@ -82,28 +109,42 @@ class CashManagerViewModel(
 
     private val overlay = MutableStateFlow(LocalOverlayState())
 
-    val uiState: StateFlow<CashUiState> = combine(
+    private val persistedPrefsFlow = combine(
         repository.isDarkTheme,
         repository.openingBalances,
+        repository.exchangeRates,
+    ) { isDark, opening, rates ->
+        PersistedPrefs(isDark, opening, rates)
+    }
+
+    val uiState: StateFlow<CashUiState> = combine(
+        persistedPrefsFlow,
         repository.activeTransactions,
         repository.archivedDays,
         overlay,
-    ) { isDark, opening, transactions, archived, local ->
-        val stats = computeBucketStats(opening, transactions)
+    ) { prefs, transactions, archived, local ->
+        val stats = computeBucketStats(prefs.openingBalances, transactions)
+        val equivalents = computeEquivalentTotals(stats, prefs.exchangeRates)
         val viewingDay = local.viewingArchivedDayId?.let { id ->
             archived.firstOrNull { it.id == id }
         }
         CashUiState(
-            isDarkTheme = isDark,
+            isDarkTheme = prefs.isDarkTheme,
             todayDateLabel = NumberFormatters.formatArabicDate(),
-            openingBalances = opening,
+            openingBalances = prefs.openingBalances,
+            exchangeRates = prefs.exchangeRates,
             activeTransactions = transactions,
             bucketStats = stats,
+            equivalentTotals = equivalents,
             selectedFilter = local.selectedFilter,
             archivedDays = archived,
             currentDestination = local.currentDestination,
             viewingArchivedDay = viewingDay,
             isOpeningBalanceDialogOpen = local.isOpeningBalanceDialogOpen,
+            isExchangeRateDialogOpen = local.isExchangeRateDialogOpen,
+            isFetchingRates = local.isFetchingRates,
+            fetchedRatesPreview = local.fetchedRatesPreview,
+            rateDialogFeedback = local.rateDialogFeedback,
             isTransactionSheetOpen = local.isTransactionSheetOpen,
             editingTransaction = local.editingTransaction,
             pendingDeleteTransaction = local.pendingDeleteTransaction,
@@ -115,6 +156,82 @@ class CashManagerViewModel(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = CashUiState(),
     )
+
+    fun openExchangeRateDialog() {
+        overlay.value = overlay.value.copy(
+            isExchangeRateDialogOpen = true,
+            isFetchingRates = false,
+            fetchedRatesPreview = null,
+            rateDialogFeedback = null,
+        )
+    }
+
+    fun dismissExchangeRateDialog() {
+        overlay.value = overlay.value.copy(
+            isExchangeRateDialogOpen = false,
+            isFetchingRates = false,
+            fetchedRatesPreview = null,
+            rateDialogFeedback = null,
+        )
+    }
+
+    fun fetchLiveExchangeRates() {
+        if (overlay.value.isFetchingRates) return
+        overlay.value = overlay.value.copy(
+            isFetchingRates = true,
+            rateDialogFeedback = null,
+        )
+        viewModelScope.launch {
+            val result = ExchangeRateFetcher.fetchLatestUsdRates()
+            result.fold(
+                onSuccess = { fetched ->
+                    overlay.value = overlay.value.copy(
+                        isFetchingRates = false,
+                        fetchedRatesPreview = fetched,
+                        rateDialogFeedback = ExchangeRateDialogFeedback(
+                            message = "تم تحديث الأسعار من الإنترنت — اضغط «حفظ الأسعار» للاعتماد",
+                            isError = false,
+                        ),
+                        snackbarMessage = "تم جلب أسعار الصرف بنجاح",
+                    )
+                },
+                onFailure = { error ->
+                    val msg = error.message ?: ExchangeRateFetcher.OFFLINE_ERROR_MESSAGE
+                    overlay.value = overlay.value.copy(
+                        isFetchingRates = false,
+                        rateDialogFeedback = ExchangeRateDialogFeedback(
+                            message = msg,
+                            isError = true,
+                        ),
+                        snackbarMessage = msg,
+                    )
+                },
+            )
+        }
+    }
+
+    fun saveExchangeRates(
+        usdToSyp: Double,
+        usdToTry: Double,
+        updatedLabel: String,
+    ) {
+        viewModelScope.launch {
+            repository.saveExchangeRates(
+                ExchangeRates(
+                    usdToSypRate = usdToSyp,
+                    usdToTryRate = usdToTry,
+                    lastUpdatedLabel = updatedLabel,
+                )
+            )
+            overlay.value = overlay.value.copy(
+                isExchangeRateDialogOpen = false,
+                isFetchingRates = false,
+                fetchedRatesPreview = null,
+                rateDialogFeedback = null,
+                snackbarMessage = "تم حفظ أسعار الصرف وتحديث الإجمالي المعادل",
+            )
+        }
+    }
 
     fun selectDestination(destination: AppDestination) {
         overlay.value = overlay.value.copy(

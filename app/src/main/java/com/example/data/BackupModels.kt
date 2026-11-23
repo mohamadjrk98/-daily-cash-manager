@@ -72,11 +72,33 @@ data class TransactionDto(
 }
 
 @JsonClass(generateAdapter = true)
+data class ExchangeRatesDto(
+    val usdToSypRate: Double = com.example.model.ExchangeRates.DEFAULT_USD_TO_SYP,
+    val usdToTryRate: Double = com.example.model.ExchangeRates.DEFAULT_USD_TO_TRY,
+    val lastUpdatedLabel: String = com.example.model.ExchangeRates.DEFAULT_LABEL,
+) {
+    fun toDomain(): com.example.model.ExchangeRates = com.example.model.ExchangeRates(
+        usdToSypRate = usdToSypRate.takeIf { it > 0.0 } ?: com.example.model.ExchangeRates.DEFAULT_USD_TO_SYP,
+        usdToTryRate = usdToTryRate.takeIf { it > 0.0 } ?: com.example.model.ExchangeRates.DEFAULT_USD_TO_TRY,
+        lastUpdatedLabel = lastUpdatedLabel.ifBlank { com.example.model.ExchangeRates.DEFAULT_LABEL },
+    )
+
+    companion object {
+        fun fromDomain(rates: com.example.model.ExchangeRates): ExchangeRatesDto = ExchangeRatesDto(
+            usdToSypRate = rates.usdToSypRate,
+            usdToTryRate = rates.usdToTryRate,
+            lastUpdatedLabel = rates.lastUpdatedLabel,
+        )
+    }
+}
+
+@JsonClass(generateAdapter = true)
 data class ArchivedDaySnapshotDto(
     val dateLabel: String,
     val closedAtMillis: Long,
     val openingBalances: OpeningBalancesDto,
     val transactions: List<TransactionDto>,
+    val exchangeRates: ExchangeRatesDto? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -87,4 +109,5 @@ data class CashBackupPayload(
     val openingBalances: OpeningBalancesDto,
     val activeTransactions: List<TransactionDto>,
     val archivedDays: List<ArchivedDaySnapshotDto>,
+    val exchangeRates: ExchangeRatesDto? = null,
 )

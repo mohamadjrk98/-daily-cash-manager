@@ -2,18 +2,23 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.example.data.ExchangeRateFetcher
 import com.example.export.ReportExporter
 import com.example.model.CashBucket
 import com.example.model.CashTransaction
 import com.example.model.Currency
+import com.example.model.ExchangeRates
 import com.example.model.HandoverReportData
 import com.example.model.NumberFormatters
 import com.example.model.OpeningBalances
 import com.example.model.PaymentMethod
 import com.example.model.TransactionType
 import com.example.model.computeBucketStats
+import com.example.model.computeEquivalentTotals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -70,12 +75,18 @@ class ExampleRobolectricTest {
         assertEquals(250_000.0, stats.first { it.bucket == CashBucket.SHAM_CASH_SYP }.netBalance, 0.001)
         assertEquals(350.0, stats.first { it.bucket == CashBucket.SHAM_CASH_USD }.netBalance, 0.001)
 
+        val rates = ExchangeRates(
+            usdToSypRate = 14_500.0,
+            usdToTryRate = 35.0,
+            lastUpdatedLabel = "تعديل يدوي",
+        )
         val report = HandoverReportData(
             dateLabel = "الاثنين، 2026/11/23",
             timestampMillis = 1_700_000_300_000L,
             openingBalances = opening,
             bucketStats = stats,
             transactions = txs,
+            exchangeRates = rates,
         )
         val whatsappText = ReportExporter.formatForWhatsApp(report)
         assertTrue(whatsappText.contains("كاش - ليرة سورية"))
@@ -83,7 +94,44 @@ class ExampleRobolectricTest {
         assertTrue(whatsappText.contains("كاش - دولار أمريكي"))
         assertTrue(whatsappText.contains("شام كاش - ليرة سورية"))
         assertTrue(whatsappText.contains("شام كاش - دولار أمريكي"))
+        assertTrue(whatsappText.contains("إجمالي الصندوق المعادل بالدولار"))
+        assertTrue(whatsappText.contains("إجمالي الصندوق المعادل بالليرة السورية"))
+        assertTrue(whatsappText.contains("14,500"))
         assertFalse(whatsappText.contains("شام كاش - ليرة تركية"))
+
+        val html = ReportExporter.buildPrintableHtml(report)
+        assertTrue(html.contains("إجمالي الصندوق المعادل بالدولار"))
+        assertTrue(html.contains("إجمالي الصندوق المعادل بالليرة السورية"))
+        assertTrue(html.contains("14,500"))
+    }
+
+    @Test
+    fun `equivalent totals calculate combined 5-bucket net accurately`() {
+        val opening = OpeningBalances(
+            cashSyp = 1_450_000.0, // = 100 USD
+            cashTry = 350.0,       // = 10 USD
+            cashUsd = 100.0,       // = 100 USD
+            shamCashSyp = 725_000.0, // = 50 USD
+            shamCashUsd = 40.0,    // = 40 USD
+        )
+        val stats = computeBucketStats(opening, emptyList())
+        val rates = ExchangeRates(usdToSypRate = 14_500.0, usdToTryRate = 35.0)
+        val eq = computeEquivalentTotals(stats, rates)
+
+        assertEquals(300.0, eq.totalUsd, 0.001)
+        assertEquals(4_350_000.0, eq.totalSyp, 0.001)
+    }
+
+    @Test
+    fun `exchange rate json parser parses valid er-api payload and rejects malformed input`() {
+        val sampleJson = """{"result":"success","base_code":"USD","rates":{"USD":1,"SYP":14750.256,"TRY":34.892}}"""
+        val parsed = ExchangeRateFetcher.parseRatesFromJson(sampleJson, 1_700_000_000_000L)
+        assertNotNull(parsed)
+        assertEquals(14750.26, parsed!!.usdToSypRate, 0.001)
+        assertEquals(34.89, parsed.usdToTryRate, 0.001)
+
+        assertNull(ExchangeRateFetcher.parseRatesFromJson("""{"rates":{"SYP":0,"TRY":35}}"""))
+        assertNull(ExchangeRateFetcher.parseRatesFromJson("invalid json"))
     }
 
     @Test

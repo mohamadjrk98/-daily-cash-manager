@@ -2,6 +2,7 @@ package com.example.data
 
 import com.example.model.ArchivedDay
 import com.example.model.CashTransaction
+import com.example.model.ExchangeRates
 import com.example.model.HandoverReportData
 import com.example.model.NumberFormatters
 import com.example.model.OpeningBalances
@@ -28,6 +29,8 @@ class CashLedgerRepository(
 
     val openingBalances: Flow<OpeningBalances> = preferencesStore.openingBalances
 
+    val exchangeRates: Flow<ExchangeRates> = preferencesStore.exchangeRates
+
     val activeTransactions: Flow<List<CashTransaction>> =
         cashDao.observeActiveTransactions().map { list -> list.map { it.toDomain() } }
 
@@ -44,6 +47,10 @@ class CashLedgerRepository(
         preferencesStore.saveOpeningBalances(balances)
     }
 
+    suspend fun saveExchangeRates(rates: ExchangeRates) {
+        preferencesStore.saveExchangeRates(rates)
+    }
+
     suspend fun addTransaction(tx: CashTransaction) {
         cashDao.insertTransaction(TransactionEntity.fromDomain(tx.copy(id = 0L)))
     }
@@ -58,6 +65,7 @@ class CashLedgerRepository(
 
     suspend fun closeAndArchiveDay(nowMillis: Long = System.currentTimeMillis()): Long {
         val opening = preferencesStore.getOpeningBalancesOnce()
+        val rates = preferencesStore.getExchangeRatesOnce()
         val transactions = cashDao.getActiveTransactionsOnce().map { it.toDomain() }
         val dateLabel = NumberFormatters.formatArabicDate(nowMillis)
         val snapshot = ArchivedDaySnapshotDto(
@@ -65,6 +73,7 @@ class CashLedgerRepository(
             closedAtMillis = nowMillis,
             openingBalances = OpeningBalancesDto.fromDomain(opening),
             transactions = transactions.map { TransactionDto.fromDomain(it) },
+            exchangeRates = ExchangeRatesDto.fromDomain(rates),
         )
         val json = withContext(Dispatchers.Default) { snapshotAdapter.toJson(snapshot) }
         val entity = ArchivedDayEntity(
@@ -84,6 +93,7 @@ class CashLedgerRepository(
     suspend fun exportBackupJson(nowMillis: Long = System.currentTimeMillis()): String =
         withContext(Dispatchers.IO) {
             val opening = preferencesStore.getOpeningBalancesOnce()
+            val rates = preferencesStore.getExchangeRatesOnce()
             val active = cashDao.getActiveTransactionsOnce().map {
                 TransactionDto.fromDomain(it.toDomain())
             }
@@ -96,6 +106,7 @@ class CashLedgerRepository(
                 openingBalances = OpeningBalancesDto.fromDomain(opening),
                 activeTransactions = active,
                 archivedDays = archived,
+                exchangeRates = ExchangeRatesDto.fromDomain(rates),
             )
             backupAdapter.toJson(payload)
         }
@@ -132,6 +143,9 @@ class CashLedgerRepository(
                     archivedDays = validArchived,
                 )
                 preferencesStore.saveOpeningBalances(payload.openingBalances.toDomain())
+                payload.exchangeRates?.let { ratesDto ->
+                    preferencesStore.saveExchangeRates(ratesDto.toDomain())
+                }
 
                 ImportSummary(
                     activeTransactionsCount = validActive.size,
@@ -146,6 +160,7 @@ class CashLedgerRepository(
         val opening = snapshot.openingBalances.toDomain()
         val txs = snapshot.transactions.mapNotNull { it.toDomainOrNull() }
         val stats = computeBucketStats(opening, txs)
+        val rates = snapshot.exchangeRates?.toDomain() ?: ExchangeRates.Default
         return ArchivedDay(
             id = id,
             dateLabel = dateLabel,
@@ -156,6 +171,7 @@ class CashLedgerRepository(
                 openingBalances = opening,
                 bucketStats = stats,
                 transactions = txs,
+                exchangeRates = rates,
                 isArchived = true,
                 archivedDayId = id,
             ),
