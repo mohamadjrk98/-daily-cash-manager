@@ -1,0 +1,70 @@
+<resources>
+    <string name="app_name">مدير الصندوق والغلة اليومية</string>
+
+    <!-- Navigation -->
+    <string name="nav_today">اليوم</string>
+    <string name="nav_report">التقرير</string>
+    <string name="nav_history">السجل</string>
+    <string name="nav_settings">الإعدادات</string>
+
+    <!-- Dashboard -->
+    <string name="opening_balance">الرصيد الافتتاحي</string>
+    <string name="edit_opening_balance">تعديل الرصيد الافتتاحي</string>
+    <string name="prepare_handover_report">تجهيز تقرير تسليم الغلة</string>
+    <string name="add_transaction">حركة جديدة</string>
+    <string name="cash_box_section">الصندوق (كاش)</string>
+    <string name="sham_cash_section">شام كاش</string>
+    <string name="today_ledger_title">سجل حركات اليوم</string>
+    <string name="filter_all">الكل</string>
+    <string name="filter_inflows">المقبوضات</string>
+    <string name="filter_outflows">المدفوعات والفواتير</string>
+    <string name="empty_ledger_title">لا توجد حركات مسجلة اليوم</string>
+    <string name="empty_ledger_subtitle">اضغط على «حركة جديدة» لتسجيل أول عملية قبض أو صرف خلال ثوانٍ</string>
+
+    <!-- Transaction Sheet -->
+    <string name="new_transaction_title">تسجيل حركة جديدة</string>
+    <string name="edit_transaction_title">تعديل الحركة</string>
+    <string name="type_inflow">قبض (مبيعات / دفعة)</string>
+    <string name="type_outflow">صرف (فاتورة / نثرية)</string>
+    <string name="amount_label">المبلغ</string>
+    <string name="amount_hint">أدخل المبلغ...</string>
+    <string name="payment_method_label">وسيلة الدفع</string>
+    <string name="currency_label">العملة</string>
+    <string name="category_label">التصنيف السريع</string>
+    <string name="note_label">البيان / اسم الزبون أو الفاتورة</string>
+    <string name="note_hint">مثال: دفعة الزبون أحمد، فاتورة كهرباء...</string>
+    <string name="save_transaction">حفظ الحركة</string>
+    <string name="update_transaction">حفظ التعديلات</string>
+    <string name="cancel">إلغاء</string>
+    <string name="delete">حذف</string>
+    <string name="confirm">تأكيد</string>
+    <string name="invalid_amount_error">يرجى إدخال مبلغ صحيح أكبر من الصفر</string>
+
+    <!-- Handover Report -->
+    <string name="handover_report_title">تقرير تسليم الغلة للمسؤول المالي</string>
+    <string name="section_a_inflows">القسم أ: إجمالي المقبوضات</string>
+    <string name="section_b_outflows">القسم ب: كشف الفواتير والنثريات المدفوعة</string>
+    <string name="section_c_net_cash">القسم ج: صافي الغلة المطلوب تسليمها</string>
+    <string name="col_statement">البيان</string>
+    <string name="col_amount">المبلغ</string>
+    <string name="col_currency">العملة</string>
+    <string name="col_method">وسيلة الدفع</string>
+    <string name="total_expenses_per_bucket">إجمالي المصروفات حسب الصندوق</string>
+    <string name="copy_for_whatsapp">نسخ للواتساب</string>
+    <string name="share_report">مشاركة</string>
+    <string name="print_save_pdf">طباعة / حفظ PDF</string>
+    <string name="close_archive_day">إغلاق وتصفير اليوم</string>
+    <string name="copied_to_clipboard">تم نسخ التقرير بصيغة الواتساب بنجاح</string>
+
+    <!-- History & Settings -->
+    <string name="history_title">سجل الأيام السابقة</string>
+    <string name="empty_history_title">لا توجد أيام مؤرشفة بعد</string>
+    <string name="empty_history_subtitle">عند إغلاق وتصفير اليوم من شاشة التقرير سيُحفظ هنا للرجوع إليه في أي وقت</string>
+    <string name="settings_title">الإعدادات والنسخ الاحتياطي</string>
+    <string name="appearance_section">المظهر والخط</string>
+    <string name="dark_mode_label">الوضع الداكن</string>
+    <string name="light_mode_label">الوضع الفاتح</string>
+    <string name="backup_section">النسخ الاحتياطي المحلي (JSON)</string>
+    <string name="export_backup">تصدير نسخة احتياطية JSON</string>
+    <string name="import_backup">استيراد نسخة احتياطية JSON</string>
+</resources>

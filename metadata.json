@@ -1,0 +1,6 @@
+{
+  "name": "مدير الصندوق والغلة اليومية",
+  "description": "تطبيق محاسبي سريع لإدارة الصندوق والغلة اليومية بخمس أرصدة نقدية وشام كاش مع تقرير تسليم يومي وأرشفة محلية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
